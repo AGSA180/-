@@ -22,7 +22,8 @@ function cn(...inputs: ClassValue[]) {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'generate' | 'improve' | 'report'>('generate');
-  const [hasKey, setHasKey] = useState<boolean>(true);
+  const [hasKey, setHasKey] = useState<boolean>(false);
+  const [manualKey, setManualKey] = useState<string>('');
   const [practice, setPractice] = useState('');
   const [result, setResult] = useState<string | null>(null);
   const [kpiResults, setKpiResults] = useState('');
@@ -39,9 +40,23 @@ export default function App() {
 
   useEffect(() => {
     const checkKey = async () => {
+      // Check environment variable
+      if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "undefined") {
+        setHasKey(true);
+        return;
+      }
+
+      // Check localStorage
+      const savedKey = localStorage.getItem('GEMINI_API_KEY');
+      if (savedKey) {
+        setHasKey(true);
+        return;
+      }
+
+      // Check platform selector
       if (window.aistudio) {
         const selected = await window.aistudio.hasSelectedApiKey();
-        setHasKey(selected || !!process.env.GEMINI_API_KEY);
+        if (selected) setHasKey(true);
       }
     };
     checkKey();
@@ -51,6 +66,14 @@ export default function App() {
     if (window.aistudio) {
       await window.aistudio.openSelectKey();
       setHasKey(true);
+    }
+  };
+
+  const handleSaveManualKey = () => {
+    if (manualKey.trim()) {
+      localStorage.setItem('GEMINI_API_KEY', manualKey.trim());
+      setHasKey(true);
+      alert('تم حفظ المفتاح بنجاح');
     }
   };
 
@@ -232,23 +255,48 @@ export default function App() {
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 no-print"
+            className="mb-8 p-6 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col gap-6 no-print"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
-                <Info size={20} />
+              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 flex-shrink-0">
+                <Info size={24} />
               </div>
               <div>
-                <p className="font-bold text-amber-900">تنبيه: لم يتم تحديد مفتاح API</p>
-                <p className="text-sm text-amber-700">يرجى اختيار مفتاح API مفعل لاستخدام كافة ميزات الأداة.</p>
+                <p className="font-bold text-amber-900 text-lg">تنبيه: لم يتم العثور على مفتاح API</p>
+                <p className="text-amber-700">تتطلب هذه الأداة مفتاح Gemini API للعمل. يمكنك اختيار مفتاح من المنصة أو إدخاله يدوياً أدناه.</p>
               </div>
             </div>
-            <button 
-              onClick={handleOpenKeySelector}
-              className="px-6 py-2 bg-amber-600 text-white rounded-lg font-bold hover:bg-amber-700 transition-colors shadow-sm"
-            >
-              اختيار المفتاح
-            </button>
+            
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1 relative">
+                <input 
+                  type="password"
+                  value={manualKey}
+                  onChange={(e) => setManualKey(e.target.value)}
+                  placeholder="أدخل مفتاح API يدوياً هنا..."
+                  className="w-full h-12 px-4 bg-white border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={handleSaveManualKey}
+                  className="px-6 py-2 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 transition-colors shadow-sm whitespace-nowrap"
+                >
+                  حفظ المفتاح
+                </button>
+                {window.aistudio && (
+                  <button 
+                    onClick={handleOpenKeySelector}
+                    className="px-6 py-2 bg-white border border-amber-300 text-amber-700 rounded-xl font-bold hover:bg-amber-50 transition-colors shadow-sm whitespace-nowrap"
+                  >
+                    اختيار من المنصة
+                  </button>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-amber-600 italic">
+              * سيتم حفظ المفتاح محلياً في متصفحك فقط. يمكنك الحصول على مفتاح مجاني من <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline font-bold">Google AI Studio</a>.
+            </p>
           </motion.div>
         )}
 
@@ -297,7 +345,7 @@ export default function App() {
                   whileHover={{ scale: 1.01, translateY: -2 }}
                   whileTap={{ scale: 0.99 }}
                   type="submit"
-                  disabled={loading || !practice.trim()}
+                  disabled={loading || !practice.trim() || !hasKey}
                   className={cn(
                     "w-full h-14 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all hover:shadow-xl hover:shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-100",
                     loading && "animate-pulse"
@@ -410,7 +458,7 @@ export default function App() {
                   whileHover={{ scale: 1.01, translateY: -2 }}
                   whileTap={{ scale: 0.99 }}
                   type="submit"
-                  disabled={loadingPlan || !kpiResults.trim()}
+                  disabled={loadingPlan || !kpiResults.trim() || !hasKey}
                   className={cn(
                     "w-full h-14 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all hover:shadow-xl hover:shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-100",
                     loadingPlan && "animate-pulse"
@@ -522,7 +570,7 @@ export default function App() {
                   whileHover={{ scale: 1.01, translateY: -2 }}
                   whileTap={{ scale: 0.99 }}
                   type="submit"
-                  disabled={loadingReport || !reportData.trim()}
+                  disabled={loadingReport || !reportData.trim() || !hasKey}
                   className={cn(
                     "w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all hover:shadow-xl hover:shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-100",
                     loadingReport && "animate-pulse"

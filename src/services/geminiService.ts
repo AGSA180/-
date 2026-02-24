@@ -57,8 +57,19 @@ Example Output Structure:
 ...
 `;
 
+function getApiKey() {
+  const envKey = process.env.GEMINI_API_KEY;
+  if (envKey && envKey !== "undefined") return envKey;
+  
+  // Check localStorage for manually entered key (client-side only)
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('GEMINI_API_KEY');
+  }
+  return null;
+}
+
 export async function generateKPIs(practice: string) {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error("Gemini API key is missing.");
   }
@@ -78,7 +89,7 @@ export async function generateKPIs(practice: string) {
 }
 
 export async function generateImprovementPlan(results: string) {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error("Gemini API key is missing.");
   }
@@ -123,7 +134,7 @@ Guidelines:
 }
 
 export async function generatePerformanceReport(data: string) {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error("Gemini API key is missing.");
   }
