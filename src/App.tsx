@@ -7,12 +7,22 @@ import { twMerge } from 'tailwind-merge';
 import { motion, AnimatePresence } from 'motion/react';
 import html2pdf from 'html2pdf.js';
 
+declare global {
+  interface Window {
+    aistudio: {
+      hasSelectedApiKey: () => Promise<boolean>;
+      openSelectKey: () => Promise<void>;
+    };
+  }
+}
+
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'generate' | 'improve' | 'report'>('generate');
+  const [hasKey, setHasKey] = useState<boolean>(true);
   const [practice, setPractice] = useState('');
   const [result, setResult] = useState<string | null>(null);
   const [kpiResults, setKpiResults] = useState('');
@@ -26,6 +36,23 @@ export default function App() {
   const resultsRef = useRef<HTMLDivElement>(null);
   const planRef = useRef<HTMLDivElement>(null);
   const reportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkKey = async () => {
+      if (window.aistudio) {
+        const selected = await window.aistudio.hasSelectedApiKey();
+        setHasKey(selected || !!process.env.GEMINI_API_KEY);
+      }
+    };
+    checkKey();
+  }, []);
+
+  const handleOpenKeySelector = async () => {
+    if (window.aistudio) {
+      await window.aistudio.openSelectKey();
+      setHasKey(true);
+    }
+  };
 
   useEffect(() => {
     if (result && resultsRef.current) {
@@ -53,8 +80,11 @@ export default function App() {
     try {
       const output = await generateKPIs(practice);
       setResult(output || "عذراً، لم يتمكن النظام من توليد النتائج. حاول مرة أخرى.");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      if (error.message?.includes("Requested entity was not found")) {
+        setHasKey(false);
+      }
       setResult("حدث خطأ أثناء الاتصال بالذكاء الاصطناعي. يرجى التحقق من المفتاح البرمجي.");
     } finally {
       setLoading(false);
@@ -69,8 +99,11 @@ export default function App() {
     try {
       const output = await generateImprovementPlan(kpiResults);
       setImprovementPlan(output || "عذراً، لم يتمكن النظام من بناء الخطة. حاول مرة أخرى.");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      if (error.message?.includes("Requested entity was not found")) {
+        setHasKey(false);
+      }
       setImprovementPlan("حدث خطأ أثناء الاتصال بالذكاء الاصطناعي.");
     } finally {
       setLoadingPlan(false);
@@ -85,8 +118,11 @@ export default function App() {
     try {
       const output = await generatePerformanceReport(reportData);
       setPerformanceReport(output || "فشل في توليد التقرير.");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      if (error.message?.includes("Requested entity was not found")) {
+        setHasKey(false);
+      }
       setPerformanceReport("حدث خطأ أثناء توليد التقرير.");
     } finally {
       setLoadingReport(false);
@@ -192,6 +228,30 @@ export default function App() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-8 sm:py-12">
+        {!hasKey && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 no-print"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
+                <Info size={20} />
+              </div>
+              <div>
+                <p className="font-bold text-amber-900">تنبيه: لم يتم تحديد مفتاح API</p>
+                <p className="text-sm text-amber-700">يرجى اختيار مفتاح API مفعل لاستخدام كافة ميزات الأداة.</p>
+              </div>
+            </div>
+            <button 
+              onClick={handleOpenKeySelector}
+              className="px-6 py-2 bg-amber-600 text-white rounded-lg font-bold hover:bg-amber-700 transition-colors shadow-sm"
+            >
+              اختيار المفتاح
+            </button>
+          </motion.div>
+        )}
+
         {activeTab === 'generate' && (
           <>
             {/* Hero Section */}
