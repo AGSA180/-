@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Noto Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+}
+
+.markdown-body h1 { @apply text-2xl font-bold mb-6 text-slate-900 border-b-2 border-indigo-100 pb-2; }
+.markdown-body h2 { @apply text-xl font-bold mb-4 mt-8 text-slate-800 flex items-center gap-2 border-b border-indigo-200 pb-2; }
+.markdown-body h3 { @apply text-lg font-bold mb-3 mt-6 text-indigo-700; }
+.markdown-body h4 { @apply text-base font-bold mb-2 mt-4 text-slate-700; }
+.markdown-body p { @apply mb-4 leading-relaxed text-slate-600; }
+.markdown-body ul { @apply list-none mb-6 space-y-3; }
+.markdown-body li { @apply relative pr-6; }
+.markdown-body li::before { content: "•"; @apply absolute right-0 text-indigo-500 font-bold; }
+.markdown-body hr { @apply my-8 border-slate-200; }
+.markdown-body blockquote { @apply border-r-4 border-indigo-500 bg-indigo-50/50 p-4 my-6 rounded-l-lg italic text-slate-700; }
+.markdown-body table { @apply w-full border-collapse mb-6 shadow-sm rounded-lg overflow-hidden; }
+.markdown-body th, .markdown-body td { @apply border border-slate-100 p-3 text-right; }
+.markdown-body th { @apply bg-slate-50 font-bold text-slate-700; }
+
+@media print {
+  .no-print, 
+  header, 
+  footer, 
+  form, 
+  .grid,
+  section {
+    display: none !important;
+  }
+  
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .bg-white {
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .markdown-body {
+    font-size: 12pt;
+  }
+
+  /* Show the results section even if it's inside a hidden container normally */
+  div[ref="resultsRef"], .scroll-mt-20 {
+    display: block !important;
+    position: static !important;
+  }
+}
